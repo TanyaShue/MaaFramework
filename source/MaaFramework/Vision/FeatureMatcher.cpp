@@ -51,7 +51,7 @@ void FeatureMatcher::analyze()
     cherry_pick();
 
     auto cost = duration_since(start_time);
-    LogTrace << name_ << VAR(uid_) << VAR(all_results_) << VAR(filtered_results_) << VAR(best_result_) << VAR(cost)
+    LogDebug << name_ << VAR(uid_) << VAR(all_results_) << VAR(filtered_results_) << VAR(best_result_) << VAR(cost)
              << VAR(param_.template_paths) << VAR(param_.green_mask) << VAR(param_.distance_ratio) << VAR(param_.count);
 }
 
@@ -179,7 +179,7 @@ FeatureMatcher::ResultsVec FeatureMatcher::feature_postproc(
         scene.emplace_back(keypoints_2[point[0].queryIdx].pt);
     }
 
-    LogTrace << name_ << VAR(uid_) << "Match:" << VAR(good_matches.size()) << VAR(match_points.size()) << VAR(param_.distance_ratio);
+    LogDebug << name_ << VAR(uid_) << "Match:" << VAR(good_matches.size()) << VAR(match_points.size()) << VAR(param_.distance_ratio);
 
     if (good_matches.size() < 4) {
         return {};
@@ -188,7 +188,7 @@ FeatureMatcher::ResultsVec FeatureMatcher::feature_postproc(
     cv::Mat homography = cv::findHomography(obj, scene, cv::RHO);
 
     if (homography.empty()) {
-        LogTrace << name_ << VAR(uid_) << "Homography is empty";
+        LogDebug << name_ << VAR(uid_) << "Homography is empty";
         return {};
     }
 
@@ -204,6 +204,7 @@ FeatureMatcher::ResultsVec FeatureMatcher::feature_postproc(
     double w = std::max({ scene_corners[0].x, scene_corners[1].x, scene_corners[2].x, scene_corners[3].x }) - x;
     double h = std::max({ scene_corners[0].y, scene_corners[1].y, scene_corners[2].y, scene_corners[3].y }) - y;
     cv::Rect box { static_cast<int>(x), static_cast<int>(y), static_cast<int>(w), static_cast<int>(h) };
+    box &= roi_;
 
     size_t count = std::ranges::count_if(scene, [&box](const auto& point) { return box.contains(point); });
 

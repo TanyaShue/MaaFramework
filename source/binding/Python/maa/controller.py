@@ -152,6 +152,17 @@ class Controller:
                 ctypes.sizeof(ctypes.c_int32),
             )
         )
+    
+    def set_screenshot_use_raw_size(self, enable: bool) -> bool:
+        cbool = MaaBool(enable)
+        return bool(
+            Library.framework.MaaControllerSetOption(
+                self._handle,
+                MaaOption(MaaCtrlOptionEnum.ScreenshotUseRawSize),
+                ctypes.pointer(cbool),
+                ctypes.sizeof(MaaBool),
+            )
+        )
 
     ### private ###
 
@@ -343,7 +354,7 @@ class Win32Controller(Controller):
 
     def __init__(
         self,
-        hWnd: ctypes.c_void_p,
+        hWnd: Optional[ctypes.c_void_p],
         screencap_method: int = MaaWin32ScreencapMethodEnum.DXGI_DesktopDup,
         input_method: int = MaaWin32InputMethodEnum.Seize,
         notification_handler: Optional[NotificationHandler] = None,

@@ -99,6 +99,11 @@ class MaaCtrlOptionEnum:
     # value: int, eg: 1080; val_size: sizeof(int)
     ScreenshotTargetShortSide = 2
 
+    # Screenshot use raw size without scaling.
+    # Please note that this option may cause incorrect coordinates on user devices with different resolutions if scaling is not performed.
+    # value: bool, eg: true; val_size: sizeof(bool)
+    ScreenshotUseRawSize = 3
+
     # Dump all screenshots and actions
     # this option will || with MaaGlobalOptionEnum.Recording
     # value: bool, eg: true; val_size: sizeof(bool)
@@ -114,6 +119,7 @@ class MaaCtrlOptionEnum:
 #     // and more gpu id...
 # };
 MaaInferenceDevice = ctypes.c_int32
+
 
 class MaaResOptionEnum:
     Invalid = 0
@@ -146,7 +152,7 @@ class MaaAdbScreencapMethodEnum:
     EmulatorExtras = 1 << 6
 
     All = ~Null
-    Default = All & (~RawByNetcat) & (~MinicapDirect) & (~MinicapDirect)
+    Default = All & (~RawByNetcat) & (~MinicapDirect) & (~MinicapStream)
 
 
 MaaAdbInputMethod = ctypes.c_uint64
@@ -330,6 +336,33 @@ class MaaCustomControllerCallbacks(ctypes.Structure):
     ]
 
 
+class Status:
+    _status: MaaStatusEnum
+
+    def __init__(self, status: Union[MaaStatus, MaaStatusEnum, int]):
+        if isinstance(status, MaaStatus):
+            self._status = MaaStatusEnum(status.value)
+        elif isinstance(status, MaaStatusEnum):
+            self._status = status
+        else:
+            self._status = MaaStatusEnum(status)
+
+    def done(self) -> bool:
+        return self._status in [MaaStatusEnum.succeeded, MaaStatusEnum.failed]
+
+    def succeeded(self) -> bool:
+        return self._status == MaaStatusEnum.succeeded
+
+    def failed(self) -> bool:
+        return self._status == MaaStatusEnum.failed
+
+    def pending(self) -> bool:
+        return self._status == MaaStatusEnum.pending
+
+    def running(self) -> bool:
+        return self._status == MaaStatusEnum.running
+
+
 @dataclass
 class Rect:
     x: int = 0
@@ -487,6 +520,7 @@ class TaskDetail:
     task_id: int
     entry: str
     nodes: List[NodeDetail]
+    status: Status
 
 
 class LoggingLevelEnum(IntEnum):

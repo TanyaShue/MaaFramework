@@ -45,7 +45,7 @@ void OCRer::analyze()
     cherry_pick();
 
     auto cost = duration_since(start_time);
-    LogTrace << name_ << VAR(uid_) << VAR(all_results_) << VAR(filtered_results_) << VAR(best_result_) << VAR(cost) << VAR(param_.model)
+    LogDebug << name_ << VAR(uid_) << VAR(all_results_) << VAR(filtered_results_) << VAR(best_result_) << VAR(cost) << VAR(param_.model)
              << VAR(param_.only_rec) << VAR(param_.expected);
 }
 
@@ -54,7 +54,7 @@ OCRer::ResultsVec OCRer::predict() const
     ResultsVec results;
 
     if (auto cache_it = cache_.find(roi_); cache_it != cache_.end()) {
-        LogTrace << "Hit OCR cache" << VAR(roi_);
+        LogDebug << "Hit OCR cache" << VAR(roi_);
         results = cache_it->second;
     }
     else {
@@ -134,17 +134,17 @@ OCRer::Result OCRer::predict_only_rec(const cv::Mat& image_roi) const
         return {};
     }
 
-    std::string rec_text;
-    float rec_score = 0;
+    std::string reco_text;
+    float reco_score = 0;
 
-    bool ret = recer_->Predict(image_roi, &rec_text, &rec_score);
+    bool ret = recer_->Predict(image_roi, &reco_text, &reco_score);
     if (!ret) {
         LogWarn << "recer_ return false" << VAR(recer_) << VAR(image_) << VAR(image_roi);
         return {};
     }
 
-    auto text = to_u16(rec_text);
-    Result result { .text = std::move(text), .box = { 0, 0, image_roi.cols, image_roi.rows }, .score = rec_score };
+    auto text = to_u16(reco_text);
+    Result result { .text = std::move(text), .box = { 0, 0, image_roi.cols, image_roi.rows }, .score = reco_score };
 
     return result;
 }
@@ -201,7 +201,7 @@ void OCRer::postproc_replace_(Result& res) const
 {
     for (const auto& [regex, format] : param_.replace) {
         auto replaced_text = std::regex_replace(res.text, std::wregex(regex), format);
-        LogTrace << VAR(res.text) << VAR(regex) << VAR(format) << VAR(replaced_text);
+        LogDebug << VAR(res.text) << VAR(regex) << VAR(format) << VAR(replaced_text);
         res.text = std::move(replaced_text);
     }
 }

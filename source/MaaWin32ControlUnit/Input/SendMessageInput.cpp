@@ -1,5 +1,6 @@
 #include "SendMessageInput.h"
 
+#include "Utils/Codec.h"
 #include "Utils/Logger.h"
 #include "Utils/MicroControl.hpp"
 #include "Utils/Platform.h"
@@ -193,8 +194,8 @@ bool SendMessageInput::press_key(int key)
         return false;
     }
 
-    SendMessage(hwnd_, WM_KEYDOWN, key, 0);
-    SendMessage(hwnd_, WM_KEYUP, key, 0);
+    SendMessageW(hwnd_, WM_KEYDOWN, key, 0);
+    SendMessageW(hwnd_, WM_KEYUP, key, 0);
 
     return true;
 }
@@ -208,9 +209,11 @@ bool SendMessageInput::input_text(const std::string& text)
         return false;
     }
 
-    auto osstr = to_osstring(text);
-    SendMessage(hwnd_, WM_SETTEXT, NULL, (LPARAM)(osstr.c_str()));
-
+    for (const auto ch : to_u16(text)) {
+        SendMessageW(hwnd_, WM_KEYDOWN, ch, 0);
+        SendMessageW(hwnd_, WM_CHAR, ch, 0);
+        SendMessageW(hwnd_, WM_KEYUP, ch, 0);
+    }
     return true;
 }
 

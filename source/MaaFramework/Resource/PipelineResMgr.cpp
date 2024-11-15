@@ -23,8 +23,8 @@ bool PipelineResMgr::load(const std::filesystem::path& path, bool is_base, const
         return false;
     }
 
-    if (!check_all_next_list(pipeline_data_map_)) {
-        LogError << "check_all_next_list failed" << VAR(path);
+    if (!check_all_validity(pipeline_data_map_)) {
+        LogError << "check_all_validity failed" << VAR(path);
         return false;
     }
 
@@ -42,8 +42,8 @@ void PipelineResMgr::clear()
 bool PipelineResMgr::load_all_json(const std::filesystem::path& path, const DefaultPipelineMgr& default_mgr)
 {
     if (!std::filesystem::exists(path)) {
-        LogError << "path not exists";
-        return false;
+        LogWarn << "path not exists" << VAR(path);
+        return true;
     }
 
     if (!std::filesystem::is_directory(path)) {
@@ -113,6 +113,16 @@ bool PipelineResMgr::open_and_parse_file(
     return true;
 }
 
+bool PipelineResMgr::check_all_validity(const PipelineDataMap& data_map)
+{
+    LogFunc;
+
+    bool ret = check_all_next_list(data_map);
+    ret &= check_all_regex(data_map);
+
+    return ret;
+}
+
 bool PipelineResMgr::check_all_next_list(const PipelineDataMap& data_map)
 {
     LogFunc;
@@ -139,6 +149,25 @@ bool PipelineResMgr::check_all_next_list(const PipelineDataMap& data_map)
         if (all_next.size() != pipeline_data.next.size() + pipeline_data.interrupt.size() + pipeline_data.on_error.size()) {
             LogError << "there are duplicate elements in the next, interrupt and on_error" << VAR(name) << VAR(pipeline_data.next)
                      << VAR(pipeline_data.interrupt) << VAR(pipeline_data.on_error);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool PipelineResMgr::check_all_regex(const PipelineDataMap& data_map)
+{
+    LogFunc;
+
+    for (const auto& [name, pipeline_data] : data_map) {
+        if (pipeline_data.reco_type != Recognition::Type::OCR) {
+            continue;
+        }
+        const auto& reco_param = std::get<MAA_VISION_NS::OCRerParam>(pipeline_data.reco_param);
+        bool valid = std::ranges::all_of(reco_param.expected, regex_valid)
+                     && std::ranges::all_of(reco_param.replace | std::views::keys, regex_valid);
+        if (!valid) {
+            LogError << "regex invalid" << VAR(name);
             return false;
         }
     }
@@ -282,7 +311,7 @@ bool PipelineResMgr::parse_task(
     const PipelineData& default_value,
     const DefaultPipelineMgr& default_mgr)
 {
-    LogTrace << VAR(name);
+    LogDebug << VAR(name);
 
     PipelineData data;
     data.name = name;
@@ -302,7 +331,7 @@ bool PipelineResMgr::parse_task(
         return false;
     }
 
-    if (!parse_recognition(input, data.rec_type, data.rec_param, default_value.rec_type, default_value.rec_param, default_mgr)) {
+    if (!parse_recognition(input, data.reco_type, data.reco_param, default_value.reco_type, default_value.reco_param, default_mgr)) {
         LogError << "failed to parse_recognition" << VAR(input);
         return false;
     }
@@ -394,8 +423,8 @@ bool PipelineResMgr::parse_recognition(
     using namespace MAA_VISION_NS;
 
     static const std::string kDefaultRecognitionFlag = "Default";
-    std::string rec_type_name;
-    if (!get_multi_keys_and_check_value(input, { "recognition", "algorithm" }, rec_type_name, kDefaultRecognitionFlag)) {
+    std::string reco_type_name;
+    if (!get_multi_keys_and_check_value(input, { "recognition", "algorithm" }, reco_type_name, kDefaultRecognitionFlag)) {
         LogError << "failed to get_and_check_value recognition" << VAR(input);
         return false;
     }
@@ -423,12 +452,12 @@ bool PipelineResMgr::parse_recognition(
         { "Custom", Type::Custom },
         { "custom", Type::Custom },
     };
-    auto rec_type_iter = kRecTypeMap.find(rec_type_name);
-    if (rec_type_iter == kRecTypeMap.end()) {
-        LogError << "rec type not found" << VAR(rec_type_name);
+    auto reco_type_iter = kRecTypeMap.find(reco_type_name);
+    if (reco_type_iter == kRecTypeMap.end()) {
+        LogError << "rec type not found" << VAR(reco_type_name);
         return false;
     }
-    out_type = rec_type_iter->second;
+    out_type = reco_type_iter->second;
 
     bool same_type = parent_type == out_type;
     switch (out_type) {
