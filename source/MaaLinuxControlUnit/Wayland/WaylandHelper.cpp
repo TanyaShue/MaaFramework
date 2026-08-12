@@ -4,14 +4,14 @@
 
 #include <linux/input-event-codes.h>
 
-#define DEFAULT_DELETER(TypeName, DeleteFunction)            \
-    namespace std                                            \
-    {                                                        \
-    void default_delete<TypeName>::operator()(TypeName* ptr) \
-    {                                                        \
-        LogDebug << "Delete protocol";                       \
-        DeleteFunction(ptr);                                 \
-    }                                                        \
+#define DEFAULT_DELETER(TypeName, DeleteFunction)                   \
+    namespace std                                                   \
+    {                                                               \
+    void default_delete<TypeName>::operator()(TypeName* ptr)        \
+    {                                                               \
+        LogDebug << "Delete protocol " #TypeName << VAR_VOIDP(ptr); \
+        DeleteFunction(ptr);                                        \
+    }                                                               \
     }
 
 DEFAULT_DELETER(wl_display, wl_display_disconnect)
